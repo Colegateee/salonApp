@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'adminMainPage.dart';
 import 'clientMainPage.dart';
 import 'hairdresserMainPage.dart';
+import 'User.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -156,134 +157,62 @@ class ActualApp extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () {
                   _handleLogin(context);
-                  loginUsers
-                      .loginUserSystem(
-                          _usernameController.text, _passwordController.text)
-                      .then((isLoggedIn) {
-                    if (isLoggedIn) {
-                      print("logged in");
-                      CollectionReference adminsRef =
-                          FirebaseFirestore.instance.collection('Admins');
-
-                      DocumentReference adminList = adminsRef.doc('adminList');
-                      adminList.get().then((adminSnapshot) {
-                        Map<String, dynamic>? data =
-                            adminSnapshot.data() as Map<String, dynamic>?;
-                        List<dynamic>? adminListOfEmails = data?['adminList'];
-                        if (adminListOfEmails != null) {
-                          print("accessed list");
-                          if (adminListOfEmails.contains(_passwordController)) {
-                            print('checked list and it contains');
+                  FirebaseAuth.instance
+                      .signInWithEmailAndPassword(
+                    email: _usernameController.text,
+                    password: _passwordController.text,
+                  )
+                      .then((userCredential) {
+                    User? user = userCredential.user;
+                    if (user != null) {
+                      String userId =
+                          user.uid; // Get the Firebase user ID (UID)
+                      print(userId);
+                      CollectionReference usersRef =
+                          FirebaseFirestore.instance.collection('Users');
+                      usersRef.doc(userId).get().then((userDoc) {
+                        if (userDoc.exists) {
+                          // User document found, handle accordingly
+                          print('User document found: ${userDoc.data()}');
+                          // UserProfile currentUser = UserProfile.fromMap(
+                          //     userDoc.data() as Map<String, dynamic>);
+                          // print(currentUser.accountType);
+                          Map<String, dynamic> user =
+                              userDoc.data() as Map<String, dynamic>;
+                          String accType = user['accountType'];
+                          if (accType == 'admin') {
+                            print('User is admin');
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => AdminMainPage()),
+                                builder: (context) => AdminMainPage(),
+                              ),
                             );
+                          } else if (accType == 'client') {
+                            print('User is client');
+                            // Navigate to client page or handle accordingly
+                          } else if (accType == 'hairdresser') {
+                            print('User is hairdresser');
+                            // Navigate to hairdresser page or handle accordingly
+                          } else {
+                            print('Unknown account type');
+                            // Handle case where account type is unknown
                           }
+                        } else {
+                          // User document not found
+                          print('User document not found');
                         }
+                      }).catchError((error) {
+                        // Handle error while retrieving user document
+                        print("Error retrieving user document: $error");
                       });
-
-                      //     adminsRef
-                      //         .doc(_usernameController.text)
-                      //         .get()
-                      //         .then((adminSnapshot) {
-                      //       if (adminSnapshot.exists) {
-                      //         Map<String, dynamic>? data =
-                      //             adminSnapshot.data() as Map<String, dynamic>?;
-                      //         print("Logged-in user email: $loggedInUserEmail");
-                      //         if (data != null && data.containsKey('adminList')) {
-                      //           List<dynamic> adminEmails = data['adminList'];
-                      //           print("Admin emails: $adminEmails");
-                      //           print("Logged-in user email: $loggedInUserEmail");
-                      //           if (adminEmails.contains(loggedInUserEmail)) {
-                      //             Navigator.push(
-                      //               context,
-                      //               MaterialPageRoute(
-                      //                   builder: (context) => AdminMainPage()),
-                      //             );
-                      //             return; // Exit the method after navigation
-                      //           }
-                      //         }
-                      //       } else {
-                      //         // Check if the user is a client
-                      //         clientsRef
-                      //             .doc(loggedInUserEmail)
-                      //             .get()
-                      //             .then((clientSnapshot) {
-                      //           if (clientSnapshot.exists) {
-                      //             // User is a client, navigate to client page
-                      //             Navigator.push(
-                      //               context,
-                      //               MaterialPageRoute(
-                      //                   builder: (context) => ClientMainPage()),
-                      //             );
-                      //           } else {
-                      //             // Check if the user is a hairdresser
-                      //             hairdressersRef
-                      //                 .doc(loggedInUserEmail)
-                      //                 .get()
-                      //                 .then((hairdresserSnapshot) {
-                      //               if (hairdresserSnapshot.exists) {
-                      //                 // User is a hairdresser, navigate to hairdresser page
-                      //                 Navigator.push(
-                      //                   context,
-                      //                   MaterialPageRoute(
-                      //                       builder: (context) => HDMainPage()),
-                      //                 );
-                      //               } else {
-                      //                 print("Not an admin or idk");
-                      //               }
-                      //             }).catchError((error) {
-                      //               // Handle error while fetching hairdresser data
-                      //               print(
-                      //                   "Error fetching hairdresser data: $error");
-                      //               // Optionally, navigate to a default page or show an error message
-                      //             });
-                      //           }
-                      //         }).catchError((error) {
-                      //           // Handle error while fetching client data
-                      //           print("Error fetching client data: $error");
-                      //           // Optionally, navigate to a default page or show an error message
-                      //         });
-                      //       }
-                      //     }).catchError((error) {
-                      //       // Handle error while fetching admin data
-                      //       print("Error fetching admin data: $error");
-                      //       // Optionally, navigate to a default page or show an error message
-                      //     });
-                      //   } else {
-                      //     Navigator.pop(context);
-                      //     showDialog(
-                      //         context: context,
-                      //         builder: (BuildContext context) {
-                      //           return Center(
-                      //               child: Container(
-                      //             color: Colors.black54.withOpacity(0.7),
-                      //             child: AlertDialog(
-                      //               backgroundColor: Colors.black,
-                      //               title: Text(
-                      //                 "Incorrect Format/Password",
-                      //                 style: TextStyle(
-                      //                     color: Colors.brown,
-                      //                     fontFamily: "Montserrat"),
-                      //               ),
-                      //               actions: <Widget>[
-                      //                 TextButton(
-                      //                   onPressed: () {
-                      //                     Navigator.of(context).pop();
-                      //                   },
-                      //                   child: Text(
-                      //                     'Close',
-                      //                     style: TextStyle(
-                      //                         color: Colors.white,
-                      //                         fontFamily: "Montserrat"),
-                      //                   ),
-                      //                 )
-                      //               ],
-                      //             ),
-                      //           ));
-                      //         });
+                    } else {
+                      // User is null
+                      print('User is null');
                     }
+                  }).catchError((error) {
+                    // Handle sign-in error
+                    print("Error signing in: $error");
                   });
                 }, //ONPRESSED-----------------------------------------------------------LOGIN
                 child: Text("Login"),

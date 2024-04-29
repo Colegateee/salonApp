@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'adminMainPage.dart';
 import 'main.dart';
+import 'User.dart';
 
 class RegisterUserPage extends StatelessWidget {
   RegisterUserPage({Key? key}) : super(key: key);
@@ -161,47 +162,69 @@ class RegisterUserPage extends StatelessWidget {
                       email: _usernameController.text.trim(),
                       password: _passwordController.text.trim(),
                     )
-                        .then((value) {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return Center(
-                            child: Container(
-                              color: Colors.black54.withOpacity(0.7),
-                              child: AlertDialog(
-                                backgroundColor: Colors.black,
-                                title: Text(
-                                  "Registration Success -- Please Login",
-                                  style: TextStyle(
-                                    color: Colors.brown,
-                                    fontFamily: "Montserrat",
-                                  ),
-                                ),
-                                actions: <Widget>[
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => ActualApp(),
-                                        ),
-                                      );
-                                    },
-                                    child: Text(
-                                      'Close',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontFamily: "Montserrat",
-                                      ),
+                        .then((userCredential) {
+                      // If user creation successful, create user document in Firestore
+                      FirebaseFirestore.instance
+                          .collection('Users')
+                          .doc(userCredential
+                              .user!.uid) // Use UID as document ID
+                          .set({
+                        'email': _usernameController.text.trim(),
+                        'accountType': 'client', // Set default account type
+                        'password': _passwordController.text.trim(),
+                        // Add other user details here if needed
+                      }).then((_) {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return Center(
+                              child: Container(
+                                color: Colors.black54.withOpacity(0.7),
+                                child: AlertDialog(
+                                  backgroundColor: Colors.black,
+                                  title: Text(
+                                    "Registration Success -- Please Login",
+                                    style: TextStyle(
+                                      color: Colors.brown,
+                                      fontFamily: "Montserrat",
                                     ),
-                                  )
-                                ],
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => ActualApp(),
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        'Close',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontFamily: "Montserrat",
+                                        ),
+                                      ),
+                                    )
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      );
+                            );
+                          },
+                        );
+                        // Navigate to desired page after user creation
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => ActualApp(),
+                        //   ),
+                        // );
+                      }).catchError((error) {
+                        // Handle error while creating user document
+                        print("Error creating user document: $error");
+                      });
                     }).catchError((error) {
                       print('Error during registration: $error');
                       if (error.toString() ==
